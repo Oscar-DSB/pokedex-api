@@ -1,0 +1,20 @@
+[project]
+name = "pokeapiproject"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.120.0",
+    "httpx[http2]>=0.28.1",
+    "passlib[bcrypt]>=1.7.4",
+    "pydantic>=2.12.3",
+    "pydantic-settings>=2.11.0",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+    "python-jose[cryptography]>=3.5.0",
+    "python-multipart>=0.0.20",
+    "slowapi>=0.1.9",
+    "sqlalchemy>=2.0.44",
+    "sqlmodel>=0.0.27",
+    "uvicorn[standard]>=0.38.0",
+]
