@@ -13,6 +13,7 @@ dependencies = [
     "pytest-asyncio>=1.2.0",
     "python-jose[cryptography]>=3.5.0",
     "python-multipart>=0.0.20",
+    "requests>=2.32.5",
     "slowapi>=0.1.9",
     "sqlalchemy>=2.0.44",
     "sqlmodel>=0.0.27",
