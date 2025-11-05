@@ -1,6 +1,10 @@
-# archivo: app/main.py
 from fastapi import FastAPI
-from app.routers import pokemon  # Importamos el router del módulo Pokémon
+from slowapi.middleware import SlowAPIMiddleware
+from fastapi.middleware.cors import CORSMiddleware
+from app.rate_limiter import limiter
+from app.database import init_db
+from app.routers import auth as auth_router
+from app.routers import pokemon
 import logging
 
 # Configuración básica de logs
@@ -8,13 +12,31 @@ logging.basicConfig(
     level=logging.INFO,  # Nivel de logs que se mostrarán (DEBUG, INFO, WARNING, ERROR, CRITICAL)
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
-# Crear instancia de la aplicación FastAPI
+
 app = FastAPI(title="Pokedex API")
 
+# Rate limiting (slowapi)
+app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
+
+# CORS (ajusta orígenes según tu frontend)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Ruta raíz (comprobación básica)
+@app.on_event("startup")
+def on_startup():
+    init_db()
+
 @app.get("/")
 def read_root():
-    return {"message": "Bienvenido a la Pokédex API 🧩"}
+    return {"message": "Pokedex API funcionando correctamente 🚀"}
 
 # Incluir el router de Pokémon
 app.include_router(pokemon.router)
+app.include_router(auth_router.router)
