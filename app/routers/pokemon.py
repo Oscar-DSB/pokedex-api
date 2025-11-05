@@ -1,14 +1,15 @@
-from fastapi import APIRouter, Query, Path, HTTPException
+from fastapi import APIRouter, Query, Path, HTTPException, Depends
 from app.services.pokeapi_service import PokeAPIService
+from app.auth import get_current_user
 import logging
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/pokemon", tags=["pokemon"])
+router = APIRouter(prefix="/api/v1/pokemon", tags=["pokemon"],dependencies=[Depends(get_current_user)])
 service = PokeAPIService()
 
 @router.get("/{id_or_name}")
-def get_pokemon(id_or_name: str):
+def get_pokemon(id_or_name: str, ):
     logger.info(f"Solicitud recibida: GET /api/v1/pokemon/{id_or_name}")
     try:
         data = service.get_pokemon(id_or_name)
