@@ -33,9 +33,6 @@ app.add_middleware(
 def on_startup():
     init_db()
 
-@app.get("/")
-def read_root():
-    return {"message": "Pokedex API funcionando correctamente 🚀"}
 
 # Incluir el router de Pokémon
 app.include_router(pokemon.router)
