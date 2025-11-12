@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, conint, conlist
 
 
 class UserBase(BaseModel):
@@ -40,35 +40,33 @@ class PokedexEntryCreate(PokedexEntryBase):
 class PokedexEntryRead(PokedexEntryBase):
     """Datos que devuelve la API al consultar una entrada"""
     id: int
-    owner_id: int
+    user_id: int
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
-class TeamBase(BaseModel):
-    name: str = Field(max_length=100)
-    description: Optional[str] = None
+class TeamCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=50)
+    description: Optional[str] = Field(default=None, max_length=200)
+    # máximo 6 miembros
+    pokemon_ids: conlist(int, min_items=1, max_items=6)
 
-class TeamCreate(TeamBase):
-    pass
+class TeamUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=2, max_length=50)
+    description: Optional[str] = Field(default=None, max_length=200)
+    pokemon_ids: Optional[conlist(int, min_items=1, max_items=6)] = None
 
-class TeamRead(TeamBase):
+class TeamMemberOut(BaseModel):
+    pokemon_id: int
+    pokemon_name: Optional[str] = None
+
+class TeamOut(BaseModel):
     id: int
-    trainer_id: int
-    created_at: datetime
-    model_config = ConfigDict(from_attributes=True)
+    name: str
+    description: Optional[str]
+    members: List[TeamMemberOut]
 
-class TeamMemberBase(BaseModel):
-    team_id: int
-    pokedex_entry_id: int
-    position: int = Field(ge=1, le=6)
-
-class TeamMemberCreate(TeamMemberBase):
-    pass
-
-class TeamMemberRead(TeamMemberBase):
-    id: int
-    model_config = ConfigDict(from_attributes=True)
-
+    class Config:
+        from_attributes = True
 class RegisterRequest(BaseModel):
     username: str = Field(min_length=3, max_length=50)
     email: str = Field(min_length=5, max_length=100)
@@ -82,3 +80,29 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str | None = None
     token_type: str = "bearer"
+
+class PokedexCreate(BaseModel):
+    pokemon_id: conint(gt=0)
+    nickname: Optional[str] = None
+    is_captured: bool = True
+
+class PokedexUpdate(BaseModel):
+    is_captured: Optional[bool] = None
+    capture_date: Optional[datetime] = None
+    nickname: Optional[str] = None
+    favorite: Optional[bool] = None
+
+class PokedexEntryOut(BaseModel):
+    id: int
+    pokemon_id: int
+    pokemon_name: Optional[str]
+    nickname: Optional[str]
+    is_captured: bool
+    favorite: bool
+    capture_date: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+        json_encoders = {
+            datetime: lambda v: v.strftime("%Y-%m-%d %H:%M:%S") if v else None
+        }

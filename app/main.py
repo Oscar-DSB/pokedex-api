@@ -5,6 +5,7 @@ from app.rate_limiter import limiter
 from app.database import init_db
 from app.routers import auth as auth_router
 from app.routers import pokemon
+from app.routers import pokedex
 import logging
 
 # Configuración básica de logs
@@ -19,7 +20,6 @@ app = FastAPI(title="Pokedex API")
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
 
-# CORS (ajusta orígenes según tu frontend)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://localhost:3000"],
@@ -34,6 +34,6 @@ def on_startup():
     init_db()
 
 
-# Incluir el router de Pokémon
 app.include_router(pokemon.router)
 app.include_router(auth_router.router)
+app.include_router(pokedex.router)
