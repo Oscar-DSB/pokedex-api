@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 router = APIRouter(
-    prefix="/api/v1/pokemon",
+    prefix="/pokemon",
     tags=["pokemon"],
     dependencies=[Depends(get_current_user)]  # 🔒 requiere token
 )
@@ -189,7 +189,9 @@ def _render_card_tcg_png(poke: dict, species: dict) -> bytes:
     return buf.read()
 
 
-
+# ------------------------------------------------
+# GET /card
+# ------------------------------------------------
 @router.get("/{id_or_name}/card", summary="Genera una ficha estilo TCG (PNG o PDF)")
 def get_pokemon_card(
     id_or_name: str = Path(..., description="ID o nombre del Pokémon"),
@@ -205,7 +207,6 @@ def get_pokemon_card(
         logger.exception(f"Error inesperado con '{id_or_name}'")
         raise HTTPException(status_code=500, detail="Unexpected error")
 
-    # 🔸 Siempre usa TCG (sin parámetro style)
     png_bytes = _render_card_tcg_png(poke, species)
 
     if format == "png":
@@ -227,11 +228,9 @@ def get_pokemon_card(
             headers={"Content-Disposition": f'attachment; filename=\"{filename}\"'}
         )
 
-@router.get("/me")
-def me(user: User = Depends(get_current_user)):
-    return {"id": user.id, "username": user.username, "email": user.email}
-
-
+# ------------------------------------------------
+# GET /search
+# ------------------------------------------------
 @router.get("/search", summary="Busca Pokémon por nombre (proxy PokeAPI)")
 @limiter.limit("30/minute")
 def search_pokemon_by_name(
@@ -246,7 +245,9 @@ def search_pokemon_by_name(
         raise HTTPException(status_code=404, detail="No se encontraron Pokémon")
 
     return result
-
+# ------------------------------------------------
+# GET /id_or_name
+# ------------------------------------------------
 @router.get("/{id_or_name}")
 def get_pokemon(id_or_name: str, ):
     logger.info(f"Solicitud recibida: GET /api/v1/pokemon/{id_or_name}")
@@ -266,7 +267,9 @@ def get_pokemon(id_or_name: str, ):
     except Exception:
         logger.exception(f"Error inesperado con '{id_or_name}'")
         raise HTTPException(status_code=500, detail="Unexpected error")
-
+# ------------------------------------------------
+# GET / (lista pokemons)
+# ------------------------------------------------
 @router.get("")
 @router.get("/", include_in_schema=False)
 def search_pokemons(
@@ -292,7 +295,9 @@ def search_pokemons(
     except Exception:
         logger.exception(f"Error inesperado")
         raise HTTPException(status_code=500, detail="Unexpected error")
-
+# ------------------------------------------------
+# GET /type  (lista por tipos)
+# ------------------------------------------------
 @router.get("/type/{type_name}")
 def get_pokemon_by_type(
     type_name: str = Path(..., description="Tipo de Pokémon (fire, water, grass, etc.)")
@@ -317,7 +322,9 @@ def get_pokemon_by_type(
     except Exception:
         logger.exception(f"Error inesperado")
         raise HTTPException(status_code=500, detail="Unexpected error")
-
+# ------------------------------------------------
+# GET /species
+# ------------------------------------------------
 @router.get("/species/{id_or_name}")
 def get_pokemon_species(id_or_name: str):
     logger.info(f"Solicitud recibida: GET /api/v1/pokemon/species/{id_or_name}")
@@ -350,3 +357,4 @@ def get_pokemon_species(id_or_name: str):
     except Exception:
         logger.exception(f"Error inesperado con '{id_or_name}'")
         raise HTTPException(status_code=500, detail="Unexpected error")
+

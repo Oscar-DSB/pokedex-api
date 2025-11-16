@@ -89,4 +89,3 @@ class PokeAPIService:
 
     def get_pokemon_by_type(self, type_name: str):
         return self._get(f"type/{type_name}")
-
