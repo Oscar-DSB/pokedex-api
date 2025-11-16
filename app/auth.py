@@ -1,73 +1,109 @@
 import re
+import logging
 from datetime import datetime, timedelta
-from typing import Optional
-
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer
+from fastapi import Depends, HTTPException, Request
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlmodel import Session, select
-
 from app.config import settings
-from app.database import get_session
 from app.models import User
+from app.database import get_session
 
-# === Password hashing ===
-pwd_context = CryptContext(
-    schemes=["bcrypt_sha256"],  # evita límite de 72 bytes y problemas en Windows
-    deprecated="auto",
-)
+logger = logging.getLogger("pokedex_api")
 
-def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# -------------------------------------------------
+#  VALIDADORES Y UTILIDADES
+# -------------------------------------------------
+EMAIL_RE = re.compile(r"^[\w\.-]+@[\w\.-]+\.\w+$")
+PASSWORD_RE = re.compile(r"^(?=.*[A-Z])(?=.*\d).{8,}$")
 
 def get_password_hash(password: str) -> str:
+    """Hashea la contraseña."""
     return pwd_context.hash(password)
 
-# === JWT ===
-security = HTTPBearer()
+def verify_password(plain: str, hashed: str) -> bool:
+    """Verifica una contraseña con hash bcrypt."""
+    return pwd_context.verify(plain, hashed)
 
-def _create_token(payload: dict, minutes: int) -> str:
-    now = datetime.utcnow()
-    to_encode = payload.copy()
-    to_encode.update({
-        "iat": int(now.timestamp()),
-        "exp": int((now + timedelta(minutes=minutes)).timestamp()),
-    })
-    return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
-
-def create_access_token(username: str, user_id: int) -> str:
-    return _create_token({"sub": username, "user_id": user_id}, settings.access_token_expire_minutes)
-
-def create_refresh_token(username: str, user_id: int) -> str:
-    return _create_token({"sub": username, "user_id": user_id, "type": "refresh"}, settings.refresh_token_expire_minutes)
-
-def get_user_by_username(session: Session, username: str) -> Optional[User]:
+def get_user_by_username(session: Session, username: str):
+    """Busca un usuario por nombre de usuario."""
     return session.exec(select(User).where(User.username == username)).first()
 
-async def get_current_user(
-    credentials = Depends(security),
-    session: Session = Depends(get_session),
-) -> User:
-    cred_exc = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Credenciales inválidas",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    token = credentials.credentials
+
+# -------------------------------------------------
+#  CREACIÓN DE TOKENS JWT
+# -------------------------------------------------
+def create_access_token(username: str, user_id: int, expires_delta: timedelta | None = None) -> str:
+    """Crea un token de acceso (1 hora por defecto)."""
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=60))
+    to_encode = {
+        "sub": username,
+        "user_id": user_id,
+        "type": "access",
+        "iat": datetime.utcnow(),
+        "exp": expire,
+    }
+
+    token = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
+    logger.info(f"Access token creado para user_id={user_id}")
+    return token
+
+
+def create_refresh_token(username: str, user_id: int, expires_delta: timedelta | None = None) -> str:
+    """Crea un token de refresco (7 días por defecto)."""
+    expire = datetime.utcnow() + (expires_delta or timedelta(days=7))
+    to_encode = {
+        "sub": username,
+        "user_id": user_id,
+        "type": "refresh",
+        "iat": datetime.utcnow(),
+        "exp": expire,
+    }
+
+    token = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
+    logger.info(f"Refresh token creado para user_id={user_id}")
+    return token
+
+
+# -------------------------------------------------
+#  AUTENTICACIÓN DE PETICIONES
+# -------------------------------------------------
+def get_current_user(
+    request: Request,
+    session: Session = Depends(get_session)
+):
+    """Obtiene el usuario autenticado desde el header Authorization."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        logger.warning(f"AuthError: No token en {request.url.path}")
+        raise HTTPException(status_code=401, detail="Token requerido")
+
+    token = auth_header.split(" ")[1]
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
-        username = payload.get("sub")
-        if not username:
-            raise cred_exc
-    except JWTError:
-        raise cred_exc
+        user_id: int = payload.get("user_id")
+        token_type: str = payload.get("type")
 
-    user = get_user_by_username(session, username)
+        if token_type != "access":
+            logger.warning(f"AuthError: token no es de tipo 'access' ({request.url.path})")
+            raise HTTPException(status_code=401, detail="Tipo de token inválido")
+
+        if user_id is None:
+            logger.warning("AuthError: token sin user_id")
+            raise HTTPException(status_code=401, detail="Token inválido")
+
+    except JWTError as e:
+        logger.warning(f"AuthError JWT: {str(e)} ({request.url.path})")
+        raise HTTPException(status_code=401, detail="Token inválido o expirado")
+
+    # Aquí usamos la sesión inyectada (misma que usa pytest)
+    user = session.exec(select(User).where(User.id == user_id)).first()
+
     if not user:
-        raise cred_exc
-    return user
+        logger.warning(f"AuthError: usuario no encontrado ({user_id})")
+        raise HTTPException(status_code=401, detail="Usuario no válido")
 
-# === Validaciones (regex) ===
-EMAIL_RE   = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
-PASSWORD_RE= re.compile(r"^(?=.*[A-Z])(?=.*\d).{8,}$")  # ≥8, 1 mayúscula, 1 número
+    request.state.user_id = user.id
+    return user
