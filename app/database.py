@@ -2,11 +2,11 @@
 from sqlmodel import SQLModel, create_engine, Session
 import os
 
-# Usamos SQLite por defecto (puedes cambiar a PostgreSQL)
+# Usamos SQLite por defecto
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./pokedex.db")
 
 # echo=True muestra todas las queries en consola (útil para debug)
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(DATABASE_URL, echo=False)
 
 def init_db():
     """Crea las tablas si no existen."""
