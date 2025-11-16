@@ -1,19 +1,82 @@
-# Python
+# ================================
+# 🐍 Python
+# ================================
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
+*.pyd
 *.pytest_cache/
+*.coverage
+.coverage*
+htmlcov/
+
+# ================================
+# 👨‍🔬 Testing
+# ================================
+.pytest_cache/
+.cache/
+tests/__pycache__/
+tests/.pytest_cache/
+
+# ================================
+# 🗄 Entornos virtuales
+# ================================
 .venv/
 venv/
+env/
+ENV/
+
+# ================================
+# 🔐 Variables de entorno
+# ================================
 .env
+env.*
 
-# IDEs
-.idea/
-.vscode/
 
-# Bases de datos y logs
+# ================================
+# 💽 Bases de datos y migraciones
+# ================================
 *.db
-*.sqlite*
-*.log
+*.sqlite
+*.sqlite3
+*.sqlite-journal
 
-# Otros
+# ================================
+# 📝 Logs
+# ================================
+*.log
+logs/
+pokedex_api.log
+
+# ================================
+# 📦 Archivos generados
+# ================================
+*.pdf
+*.png
+*.csv
+
+# ================================
+# 🛠 Herramientas varias
+# ================================
 .DS_Store
+Thumbs.db
+
+# ================================
+# 👨‍💻 IDEs
+# ================================
+.vscode/
+.idea/
+*.iml
+
+# ================================
+# 🐍 Uvicorn/hypercorn
+# ================================
+*.pid
+
+# ================================
+# ⚙️ Compiladores
+# ================================
+build/
+dist/
+*.egg-info/

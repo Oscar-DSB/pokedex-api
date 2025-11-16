@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     refresh_token_expire_minutes: int = 60 * 24 * 7
     database_url: str = "sqlite:///./pokedex.db"
     cors_origins: List[str] = []
+    TESTING: bool = False
 
     @field_validator("cors_origins", mode="before")
     @classmethod
