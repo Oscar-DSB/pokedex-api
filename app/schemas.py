@@ -21,52 +21,28 @@ class UserRead(UserBase):
     is_active: bool
     model_config = ConfigDict(from_attributes=True)
 
-class PokedexEntryBase(BaseModel):
-    """Campos comunes para entradas de Pokédex"""
-    pokemon_id: int
-    pokemon_name: str
-    pokemon_sprite: str
-    nickname: Optional[str] = Field(default=None, max_length=50)
-    notes: Optional[str] = Field(default=None, max_length=500)
-    favorite: bool = False
-    is_captured: bool = False
-
-
-class PokedexEntryCreate(PokedexEntryBase):
-    """Datos necesarios para crear una entrada"""
-    pass
-
-
-class PokedexEntryRead(PokedexEntryBase):
-    """Datos que devuelve la API al consultar una entrada"""
-    id: int
-    user_id: int
-    created_at: datetime
-    model_config = ConfigDict(from_attributes=True)
-
 class TeamCreate(BaseModel):
     name: str = Field(min_length=2, max_length=50)
     description: Optional[str] = Field(default=None, max_length=200)
-    # máximo 6 miembros
-    pokemon_ids: conlist(int, min_items=1, max_items=6)
+    pokemon_ids: Optional[List[int]] = Field(default_factory=list)
 
 class TeamUpdate(BaseModel):
     name: Optional[str] = Field(default=None, min_length=2, max_length=50)
     description: Optional[str] = Field(default=None, max_length=200)
-    pokemon_ids: Optional[conlist(int, min_items=1, max_items=6)] = None
+    pokemon_ids: Optional[conlist(int, min_length=1, max_length=6)] = None
 
 class TeamMemberOut(BaseModel):
     pokemon_id: int
     pokemon_name: Optional[str] = None
+
 
 class TeamOut(BaseModel):
     id: int
     name: str
     description: Optional[str]
     members: List[TeamMemberOut]
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
 class RegisterRequest(BaseModel):
     username: str = Field(min_length=3, max_length=50)
     email: str = Field(min_length=5, max_length=100)
